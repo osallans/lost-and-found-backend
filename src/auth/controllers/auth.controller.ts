@@ -4,7 +4,7 @@ import { Request, Response } from 'express';
 import { TokenService } from '../services/token.service';
 
 import bcrypt from 'bcrypt';
-import { findUserByEmail } from '../../../user/services/user.service';
+import { findUserByEmail } from '../../user/services/user.service';
 
 export const login = async (req: Request, res: Response) => {
   const { email, password } = req.body;

@@ -1,8 +1,8 @@
 // src/auth/services/auth.service.ts
 
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { IDPType } from '../../../models/enums/idpType.enum'; // We'll create this enum next
-import { pool } from '../../../utils/db';
+import { IDPType } from '../../models/enums/idpType.enum'; // We'll create this enum next
+import { pool } from '../../utils/db';
 import { UserAccessTokenPayload} from '../interfaces/userAccessTokenPayload.interface';
 import { UserRefreshTokenPayload} from '../interfaces/userRefreshTokenPayload.interface';
 import { v4 as uuidv4 } from 'uuid';
