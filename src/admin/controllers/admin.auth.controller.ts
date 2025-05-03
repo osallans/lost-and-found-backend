@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import { AdminAuthService } from '../services/admin.auth.service';
 
 import bcrypt from 'bcrypt';
-import { AdminAccessTokenPayload } from '../interfaces/adminAccessTokenPayload.interface';
+import { AdminAccessTokenPayload } from '../../auth/user/interfaces/adminAccessTokenPayload.interface';
 
 export class AdminAuthController {
   static async register(req: Request, res: Response) {

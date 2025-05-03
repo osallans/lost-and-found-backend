@@ -47,7 +47,7 @@ const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 import cookieParser from 'cookie-parser';
 app.use(cookieParser());
-import userAuthRouter from './auth/user/routes/user.auth.routes';
+import userAuthRouter from './user/routes/user.auth.routes';
 app.use('/auth', userAuthRouter);
 // Basic health check route
 app.get('/', (req: Request, res: Response) => {

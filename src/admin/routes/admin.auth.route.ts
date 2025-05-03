@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { AdminAuthController } from '../controllers/admin.auth.controller';
-import { asyncHandler } from '../../../utils/asyncHandler';
+import { asyncHandler } from '../../utils/asyncHandler';
 
 const router = Router();
 

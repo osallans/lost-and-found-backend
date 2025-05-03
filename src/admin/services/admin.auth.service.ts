@@ -1,8 +1,8 @@
 import { v4 as uuidv4 } from 'uuid';
 import jwt, { SignOptions } from 'jsonwebtoken';
-import { pool } from '../../../utils/db';
-import { AdminAccessTokenPayload } from '../interfaces/adminAccessTokenPayload.interface';
-import { AdminRefreshTokenPayload } from '../interfaces/adminRefreshTokenPayload.interface';
+import { pool } from '../../utils/db';
+import { AdminAccessTokenPayload } from '../../auth/user/interfaces/adminAccessTokenPayload.interface';
+import { AdminRefreshTokenPayload } from '../../auth/user/interfaces/adminRefreshTokenPayload.interface';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your_default_jwt_secret';
 const JWT_EXPIRATION: number | string  = process.env.JWT_EXPIRATION || '2h';

@@ -1,6 +1,6 @@
 import { Router } from 'express';
-import { UserAuthController } from '../controllers/user.auth.controller';
-import { asyncHandler } from '../../../utils/asyncHandler';
+import { AuthController } from '../../auth/user/controllers/auth.controller';
+import { asyncHandler } from '../../utils/asyncHandler';
 
 const router = Router();
 
@@ -8,30 +8,30 @@ const router = Router();
  * @route POST /auth/user-register
  * @desc Register a new User
  */
-router.post('/user-register', asyncHandler(UserAuthController.register));
+router.post('/user-register', asyncHandler(AuthController.register));
 
 /**
  * @route POST /auth/user-login-basic
  * @desc Login User (email/password)
  */
-router.post('/user-login-basic', asyncHandler(UserAuthController.loginBasic));
+router.post('/user-login-basic', asyncHandler(AuthController.loginBasic));
 
 /**
  * @route POST /auth/user-login-idp
  * @desc Login User via IDP (Google, Facebook, etc.)
  */
-router.post('/user-login-idp', asyncHandler(UserAuthController.loginWithIDP));
+router.post('/user-login-idp', asyncHandler(AuthController.loginWithIDP));
 
 /**
  * @route POST /auth/user-exchange-code
  * @desc Exchange authorization code for tokens (IDP backend flow)
  */
-router.post('/user-exchange-code', asyncHandler(UserAuthController.exchangeAuthorizationCode));
+router.post('/user-exchange-code', asyncHandler(AuthController.exchangeAuthorizationCode));
 
 /**
  * @route POST /auth/user-refresh-token
  * @desc Refresh access token using a refresh token
  */
-router.post('/user-refresh-token', asyncHandler(UserAuthController.refreshAccessToken));
+router.post('/user-refresh-token', asyncHandler(AuthController.refreshAccessToken));
 
 export default router;
