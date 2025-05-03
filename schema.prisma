@@ -1,0 +1,194 @@
+// Enums
+enum UserRole {
+  user
+  admin
+  manager
+}
+
+enum IdpProvider {
+  local
+  google
+  facebook
+  cognito
+}
+
+enum ItemStatus {
+  lost
+  found
+  matched
+  claimed
+  returned
+}
+
+enum ActorRoleType {
+  admin
+  user
+}
+
+enum ClaimStatus {
+  pending
+  approved
+  rejected
+  cancelled
+}
+
+// Models
+model User {
+  id          String      @id @default(uuid())
+  name        String
+  nameAr      String?     @map("name_ar")
+  email       String      @unique
+  password    String?
+  role        UserRole?
+  idpType     IdpProvider @default(local)
+  idpId       String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @default(now()) @map("updated_at")
+  isDeleted   Boolean     @default(false) @map("is_deleted")
+  createdBy   String?     @map("created_by")
+  updatedBy   String?     @map("updated_by")
+  items       Item[]      @relation("ReportedItems")
+  claims      Claim[]     @relation("ClaimantClaims")
+  facilityUsers FacilityUser[]
+}
+
+model Admin {
+  id          String      @id @default(uuid())
+  name        String
+  nameAr      String?     @map("name_ar")
+  email       String      @unique
+  password    String?
+  role        UserRole?
+  idpType     IdpProvider @default(local)
+  idpId       String?
+  isSuperAdmin Boolean    @default(false) @map("is_super_admin")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @default(now()) @map("updated_at")
+  isDeleted   Boolean     @default(false) @map("is_deleted")
+  createdBy   String?     @map("created_by")
+  updatedBy   String?     @map("updated_by")
+  approvedUsers FacilityUser[] @relation("AdminApprovals")
+  reviewedClaims Claim[]  @relation("AdminReviewedClaims")
+}
+
+model Country {
+  code        String      @id
+  name        String
+  nameAr      String?     @map("name_ar")
+  cities      City[]
+  facilities  Facility[]
+}
+
+model City {
+  id          String      @id @default(uuid())
+  name        String
+  nameAr      String?     @map("name_ar")
+  countryCode String
+  country     Country     @relation(fields: [countryCode], references: [code])
+  facilities  Facility[]
+}
+
+model Facility {
+  id          String      @id @default(uuid())
+  parentFacilityId String? @map("parent_facility_id")
+  parentFacility   Facility? @relation("FacilityParent", fields: [parentFacilityId], references: [id])
+  childFacilities  Facility[] @relation("FacilityParent")
+  name        String
+  nameAr      String?     @map("name_ar")
+  description String?
+  cityId      String?     
+  countryCode String?
+  isPublic    Boolean     @default(true)
+  latitude    Float?
+  longitude   Float?
+  timezone    String?
+  type        String?
+  createdAt   DateTime    @default(now()) @map("created_at")
+  isDeleted   Boolean     @default(false) @map("is_deleted")
+  createdBy   String?     @map("created_by")
+  updatedBy   String?     @map("updated_by")
+  city        City?       @relation(fields: [cityId], references: [id])
+  country     Country?    @relation(fields: [countryCode], references: [code])
+  items       Item[]
+  facilityUsers FacilityUser[]
+}
+
+model FacilityUser {
+  facilityId     String
+  userId         String
+  approvedByAdminId String?  @map("approved_by_admin_id")
+  approvedAt     DateTime?   @map("approved_at")
+  isActive       Boolean     @default(false) @map("is_active")
+  facility       Facility    @relation(fields: [facilityId], references: [id])
+  user           User        @relation(fields: [userId], references: [id])
+  approvedBy     Admin?      @relation("AdminApprovals", fields: [approvedByAdminId], references: [id])
+
+  @@id([facilityId, userId])
+}
+
+model Item {
+  id          String      @id @default(uuid())
+  facilityId  String
+  reportedBy  String      @map("reported_by")
+  title       String
+  description String?
+  status      ItemStatus
+  category    String?
+  reportedAt  DateTime    @map("reported_at")
+  resolvedAt  DateTime?   @map("resolved_at")
+  matchedItemId String?   @map("matched_item_id")
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @default(now()) @map("updated_at")
+  isDeleted   Boolean     @default(false) @map("is_deleted")
+  createdBy   String?     @map("created_by")
+  updatedBy   String?     @map("updated_by")
+
+  facility    Facility    @relation(fields: [facilityId], references: [id])
+  reporter    User        @relation("ReportedItems", fields: [reportedBy], references: [id])
+  matchedItem Item?       @relation("MatchedItem", fields: [matchedItemId], references: [id])
+  matchedBy   Item[]      @relation("MatchedItem")
+  images      ItemImage[]
+  logs        ItemLog[]
+  claims      Claim[]
+}
+
+model ItemImage {
+  id        String   @id @default(uuid())
+  itemId    String
+  imageUrl  String   @map("image_url")
+  uploadedAt DateTime @default(now()) @map("uploaded_at")
+  item      Item     @relation(fields: [itemId], references: [id], onDelete: Cascade)
+}
+
+model ItemLog {
+  id        String       @id @default(uuid())
+  itemId    String
+  action    String
+  actorId   String       @map("actor_id")
+  actorRole ActorRoleType @map("actor_role")
+  logType   String?      @map("log_type")
+  notes     String?
+  createdAt DateTime     @default(now()) @map("created_at")
+  item      Item         @relation(fields: [itemId], references: [id])
+}
+
+model Claim {
+  id        String     @id @default(uuid())
+  itemId    String
+  claimantId String    @map("claimant_id")
+  status    ClaimStatus
+  reviewedByAdminId String? @map("reviewed_by_admin_id")
+  claimToken String?   @map("claim_token")
+  attachmentUrl String? @map("attachment_url")
+  claimedAt  DateTime  @default(now()) @map("claimed_at")
+  reviewedAt DateTime? @map("reviewed_at")
+  expiresAt  DateTime? @map("expires_at")
+  createdBy  String?   @map("created_by")
+  updatedBy  String?   @map("updated_by")
+
+  item       Item      @relation(fields: [itemId], references: [id])
+  claimant   User      @relation("ClaimantClaims", fields: [claimantId], references: [id])
+  reviewedBy Admin?    @relation("AdminReviewedClaims", fields: [reviewedByAdminId], references: [id])
+
+  @@unique([itemId, claimantId])
+}

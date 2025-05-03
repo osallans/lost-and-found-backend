@@ -1,0 +1,10 @@
+INSERT INTO cities (id, name, name_ar, country_code) VALUES ('029a584d-5f87-4f82-82f0-948bdce5c1d5', 'New York', 'نيويورك', 'US');
+INSERT INTO cities (id, name, name_ar, country_code) VALUES ('e5f4ec1e-e27b-4f6a-852c-5e2fed942c9e', 'London', 'لندن', 'GB');
+INSERT INTO cities (id, name, name_ar, country_code) VALUES ('23f20044-0eef-43ca-9354-65df394e681c', 'Paris', 'باريس', 'FR');
+INSERT INTO cities (id, name, name_ar, country_code) VALUES ('3bdc9573-1d5a-4846-a4c0-7564eceff569', 'Berlin', 'برلين', 'DE');
+INSERT INTO cities (id, name, name_ar, country_code) VALUES ('cb8a0e3a-d9fe-46bd-87cc-f2c3aceccb76', 'Tokyo', 'طوكيو', 'JP');
+INSERT INTO cities (id, name, name_ar, country_code) VALUES ('89f06076-8f22-4da4-9537-851620c4a6e4', 'Beijing', 'بكين', 'CN');
+INSERT INTO cities (id, name, name_ar, country_code) VALUES ('3e521357-97d7-47de-972d-3c028d4455e1', 'Mumbai', 'مومباي', 'IN');
+INSERT INTO cities (id, name, name_ar, country_code) VALUES ('b6c1b90f-44da-4104-b315-72301eeeb5b0', 'São Paulo', 'ساو باولو', 'BR');
+INSERT INTO cities (id, name, name_ar, country_code) VALUES ('82748f9f-8517-4c52-8ed4-25ce26e0fcc0', 'Toronto', 'تورونتو', 'CA');
+INSERT INTO cities (id, name, name_ar, country_code) VALUES ('dd2d2439-e9e1-45f1-9bea-a27a6f656f07', 'Riyadh', 'الرياض', 'SA');

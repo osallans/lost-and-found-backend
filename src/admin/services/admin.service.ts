@@ -8,17 +8,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'your_default_jwt_secret';
 const JWT_EXPIRATION: number | string  = process.env.JWT_EXPIRATION || '2h';
 const REFRESH_TOKEN_EXPIRATION:string | number = process.env.REFRESH_TOKEN_EXPIRATION || '7d';
 
-export class AdminAuthService {
+export class AdminService {
 
-    static generateAccessToken(payload: AdminAccessTokenPayload) {
-        const options: SignOptions = { expiresIn: JWT_EXPIRATION as SignOptions['expiresIn'] };
-        return jwt.sign(payload, JWT_SECRET, options);
-      }
-    
-      static generateRefreshToken(payload: AdminRefreshTokenPayload) {
-        const options: SignOptions = { expiresIn: REFRESH_TOKEN_EXPIRATION as SignOptions['expiresIn'] };
-        return jwt.sign(payload, JWT_SECRET, options);
-      }
+  
 
   static async findAdminByEmail(email: string) {
     const [rows]: any = await pool.query('SELECT * FROM Admins WHERE email = ?', [email]);
