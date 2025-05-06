@@ -6,7 +6,9 @@ import {
   CreateCountrySchema,
   UpdateCountrySchema,
 } from '../validators/country.validator';
-import { validate } from '../../middlewares/validation.middleware';
+import { PaginationQuerySchema } from '../../utils/common.validator';
+
+import { validate, validateQuery } from '../../middlewares/validation.middleware';
 import { asyncHandler } from '../../middlewares/asynchandler';
 
 const router = Router();

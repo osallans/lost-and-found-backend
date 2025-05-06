@@ -19,13 +19,19 @@ export function validate(schema: ZodSchema): RequestHandler {
 
 }
 
+
 export function validateQuery(schema: ZodSchema) {
-  return (req: Request, res: Response, next: NextFunction) => {
+  return (req: Request, res: Response, next: NextFunction): void => {
     const result = schema.safeParse(req.query);
+
     if (!result.success) {
-      return res.status(400).json({ errors: result.error.format() });
+      res.status(400).json({ errors: result.error.format() });
+      return;
     }
-    req.query = result.data;
+
+    // ✅ Store parsed data on a custom property instead
+    (req as any).validatedQuery = result.data;
+
     next();
   };
 }
