@@ -1,1 +1,0 @@
-// sub_category DTO placeholder

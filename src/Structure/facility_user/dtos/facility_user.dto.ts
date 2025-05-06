@@ -1,1 +1,0 @@
-// facility_user DTO placeholder

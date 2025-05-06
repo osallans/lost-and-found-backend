@@ -1,1 +1,0 @@
-// facility_admin DTO placeholder
