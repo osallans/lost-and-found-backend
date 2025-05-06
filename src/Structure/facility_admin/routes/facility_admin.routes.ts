@@ -1,0 +1,1 @@
+// facility_admin Routes placeholder

@@ -1,16 +1,31 @@
-import { Request, Response, NextFunction } from 'express';
-import { body, validationResult } from 'express-validator';
+import { Request, Response, NextFunction, RequestHandler } from 'express';
+import { ZodSchema } from 'zod';
 
-export const validateUser = [
-  body('email').isEmail().withMessage('Email is required and should be valid'),
-  body('name').notEmpty().withMessage('Name is required'),
-  body('role').isIn(['user', 'admin', 'manager']).withMessage('Role must be one of [user, admin, manager]'),
-  
-  (req: Request, res: Response, next: NextFunction) => {
-    const errors = validationResult(req);
-    if (!errors.isEmpty()) {
-      return res.status(400).json({ errors: errors.array() });
+export function validate(schema: ZodSchema): RequestHandler {
+  return (req, res, next) => {
+    const result = schema.safeParse(req.body);
+    if (!result.success) {
+      res.status(400).json({
+        message: 'Validation failed',
+        errors: result.error.format(),
+      });
+      return; // Important: prevent fallthrough
     }
-    next(); // Proceed to the next middleware or route handler
-  }
-];
+
+    req.body = result.data;
+    next();
+  };
+
+
+}
+
+export function validateQuery(schema: ZodSchema) {
+  return (req: Request, res: Response, next: NextFunction) => {
+    const result = schema.safeParse(req.query);
+    if (!result.success) {
+      return res.status(400).json({ errors: result.error.format() });
+    }
+    req.query = result.data;
+    next();
+  };
+}

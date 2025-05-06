@@ -1,55 +1,93 @@
 import { Request, Response } from 'express';
 import CountryService from '../services/country.service';
 import { CountryDTO } from '../dtos/country.dto';
+import { CreateCountrySchema, UpdateCountrySchema } from '../validators/country.validator';
 
 class CountryController {
-  async create(req: Request, res: Response) {
+  async create(req: Request, res: Response): Promise<Response> {
+    const parsed = CreateCountrySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ errors: parsed.error.format() });
+    }
+
+    const countryData: CountryDTO = parsed.data;
     try {
-      const countryData: CountryDTO = req.body;
-      const newCountry = await CountryService.createCountry(countryData);
+      const newCountry = await CountryService.create(countryData);
       return res.status(201).json(newCountry);
-    } catch (error) {
-      return res.status(500).json({ message: 'Error creating country', error });
+    } catch (error: unknown) {
+      const err = error as any;
+      if (err.code === '23505') {
+        return res.status(409).json({ message: 'Country code already exists' });
+      }
+      console.error('Create error:', err);
+      return res.status(500).json({ message: 'Error creating country' });
     }
   }
 
-  async getByCode(req: Request, res: Response) {
+  async getAll(req: Request, res: Response): Promise<Response> {
+    try {
+      const page = parseInt(req.query.page as string, 10) || 1;
+      const limit = parseInt(req.query.limit as string, 10) || 20;
+    console.log('Page:', page, 'Limit:', limit);
+      const { data, total } = await CountryService.getAllPaginated(page, limit);
+      return res.status(200).json({
+        page,
+        limit,
+        total,
+        totalPages: Math.ceil(total / limit),
+        count: data.length,
+        data,
+      });
+    } catch (error) {
+      console.error('Get all error:', error);
+      return res.status(500).json({ message: 'Error fetching countries' });
+    }
+  }
+
+  async getByCode(req: Request, res: Response): Promise<Response> {
     const { code } = req.params;
     try {
-      const country = await CountryService.getCountryByCode(code);
+      const country = await CountryService.getByCode(code);
       if (country) {
         return res.status(200).json(country);
       }
       return res.status(404).json({ message: 'Country not found' });
     } catch (error) {
-      return res.status(500).json({ message: 'Error fetching country', error });
+      console.error('Get by code error:', error);
+      return res.status(500).json({ message: 'Error fetching country' });
     }
   }
 
-  async update(req: Request, res: Response) {
+  async update(req: Request, res: Response): Promise<Response> {
     const { code } = req.params;
-    const countryData: Partial<CountryDTO> = req.body;
+    const parsed = UpdateCountrySchema.safeParse(req.body);
+    if (!parsed.success) {
+      return res.status(400).json({ errors: parsed.error.format() });
+    }
+
     try {
-      const updatedCountry = await CountryService.updateCountry(code, countryData);
-      if (updatedCountry) {
-        return res.status(200).json(updatedCountry);
+      const updated = await CountryService.update(code, parsed.data);
+      if (updated) {
+        return res.status(200).json(updated);
       }
       return res.status(404).json({ message: 'Country not found' });
     } catch (error) {
-      return res.status(500).json({ message: 'Error updating country', error });
+      console.error('Update error:', error);
+      return res.status(500).json({ message: 'Error updating country' });
     }
   }
 
-  async delete(req: Request, res: Response) {
+  async delete(req: Request, res: Response): Promise<Response> {
     const { code } = req.params;
     try {
-      const isDeleted = await CountryService.deleteCountry(code);
-      if (isDeleted) {
-        return res.status(200).json({ message: 'Country deleted' });
+      const result = await CountryService.delete(code);
+      if (result) {
+        return res.status(204).send(); // 204 = No Content (successfully deleted)
       }
       return res.status(404).json({ message: 'Country not found' });
     } catch (error) {
-      return res.status(500).json({ message: 'Error deleting country', error });
+      console.error('Delete error:', error);
+      return res.status(500).json({ message: 'Error deleting country' });
     }
   }
 }

@@ -4,22 +4,22 @@ import express, { Request, Response } from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import bodyParser from 'body-parser';
-import mysql from 'mysql2/promise';
 // @ts-ignore
 import xss from 'xss-clean';
 import cors from 'cors';
 import swaggerUi from 'swagger-ui-express';
 import swaggerJsdoc from 'swagger-jsdoc';
 import dotenv from 'dotenv';
-
+import pinoHttp from 'pino-http';
+import logger from './utils/logger'; // your existing pino logger
 // Load environment variables
 dotenv.config();
 
 const app = express();
 
 // Security middlewares
-app.use(helmet());
-app.use(xss());
+//app.use(helmet());
+//app.use(xss());
 app.use(cors({ origin: '*' }));
 
 const limiter = rateLimit({
@@ -46,9 +46,21 @@ const swaggerOptions = {
 const swaggerSpec = swaggerJsdoc(swaggerOptions);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 import cookieParser from 'cookie-parser';
+import countryRoutes from './country/routes/country.route';
+import healthRoutes from './health/routes/health.route';
+import { httpLogger } from './middlewares/httpLogger';
+import { swaggerDocument } from './docs/swagger';
 app.use(cookieParser());
-import userAuthRouter from './user/routes/user.auth.routes';
-app.use('/auth', userAuthRouter);
+
+
+
+
+app.use(httpLogger);
+app.use(healthRoutes); 
+// Use the country routes
+app.use('/api', countryRoutes);  // Prefixing with '/api'
+app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
+
 // Basic health check route
 app.get('/', (req: Request, res: Response) => {
   res.send('Lost and Found API is running 🚀');
