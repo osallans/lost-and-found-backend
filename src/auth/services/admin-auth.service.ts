@@ -2,8 +2,8 @@ import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
 import { AdminModel } from '../../models/admin.model'; // Adjust based on your ORM
 import { TokenService } from './token.service';
-import { AdminAccessTokenPayload } from '../interfaces/adminAccessTokenPayload.interface';
-import { AdminRefreshTokenPayload } from '../interfaces/adminRefreshTokenPayload.interface';
+import { AdminAccessTokenPayload } from '../interfaces/accessTokenPayload.interface';
+import { AdminRefreshTokenPayload } from '../interfaces/refreshTokenPayload.interface';
 
 const SALT_ROUNDS = 10;
 

@@ -2,8 +2,10 @@
 import { pool } from '../../utils/db';
 import { CountryDTO } from '../dtos/country.dto';
 import logger from '../../utils/logger';
+import { ICountryService } from '../interfaces/ICountryService';
 
-class CountryService {
+export class CountryService implements ICountryService {
+
   async create(data: CountryDTO): Promise<CountryDTO> {
     const { code, name, name_ar } = data;
 
@@ -103,4 +105,3 @@ class CountryService {
   }
 }
 
-export default new CountryService();

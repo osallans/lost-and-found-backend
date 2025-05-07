@@ -1,39 +1,22 @@
-// src/routes/country.routes.ts
 import { Router } from 'express';
-import CountryController from '../controllers/country.controller';
 
 import {
   CreateCountrySchema,
   UpdateCountrySchema,
 } from '../validators/country.validator';
 import { PaginationQuerySchema } from '../../utils/common.validator';
-
 import { validate, validateQuery } from '../../middlewares/validation.middleware';
 import { asyncHandler } from '../../middlewares/asynchandler';
+import countryController from '../factories/controller.factory';
+
 
 const router = Router();
+const BASE_PATH = '/countries';
 
-// GET all countries (paginated)
-router.get('/countries', validateQuery(PaginationQuerySchema),asyncHandler(CountryController.getAll));
-
-// GET a single country by code
-router.get('/countries/:code', asyncHandler(CountryController.getByCode));
-
-// POST a new country
-router.post(
-  '/countries',
-  validate(CreateCountrySchema),
-  asyncHandler(CountryController.create)
-);
-
-// PUT update an existing country
-router.put(
-  '/countries/:code',
-  validate(UpdateCountrySchema),
-  asyncHandler(CountryController.update)
-);
-
-// DELETE (soft delete) a country
-router.delete('/countries/:code', asyncHandler(CountryController.delete));
+router.get(BASE_PATH, validateQuery(PaginationQuerySchema), asyncHandler(countryController.getAll));
+router.get(`${BASE_PATH}/:code`, asyncHandler(countryController.getByCode));
+router.post(BASE_PATH, validate(CreateCountrySchema), asyncHandler(countryController.create));
+router.put(`${BASE_PATH}/:code`, validate(UpdateCountrySchema), asyncHandler(countryController.update));
+router.delete(`${BASE_PATH}/:code`, asyncHandler(countryController.delete));
 
 export default router;
