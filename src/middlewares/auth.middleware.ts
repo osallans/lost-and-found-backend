@@ -1,34 +1,28 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { UserAccessTokenPayload } from '../auth/interfaces/userAccessTokenPayload.interface';
-import { AdminAccessTokenPayload } from '../auth/interfaces/accessTokenPayload.interface';
+import { UserAccessTokenPayload, AdminAccessTokenPayload, ManagerAccessTokenPayload, AccessTokenPayload } from '../auth/interfaces/tokenPayload.interface';
+import { Role } from '../models/enums/role.enum';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
-//
-// ✅ Type Extensions
-//
+// ✅ Extend Request Type
 declare global {
   namespace Express {
     interface Request {
       user?: UserAccessTokenPayload;
       admin?: AdminAccessTokenPayload;
+      manager?: ManagerAccessTokenPayload;
     }
   }
 }
 
-//
-// ✅ Utility: Extract Bearer token from Authorization header
-//
+// ✅ Extract Bearer Token
 const extractToken = (req: Request): string | null => {
   const authHeader = req.headers.authorization;
-  if (!authHeader || !authHeader.startsWith('Bearer ')) return null;
-  return authHeader.split(' ')[1];
+  return authHeader?.startsWith('Bearer ') ? authHeader.split(' ')[1] : null;
 };
 
-//
-// ✅ Utility: Verify JWT and return typed payload
-//
+// ✅ Verify JWT
 const verifyToken = <T extends JwtPayload>(token: string): T | null => {
   try {
     return jwt.verify(token, JWT_SECRET) as T;
@@ -37,24 +31,17 @@ const verifyToken = <T extends JwtPayload>(token: string): T | null => {
   }
 };
 
-//
-// ✅ Utility: Check facilityIds structure
-//
-const validateFacilityIds = (facilityIds: unknown): facilityIds is string[] => {
-  return Array.isArray(facilityIds) &&
-    facilityIds.length > 0 &&
-    facilityIds.every(id => typeof id === 'string' && id.trim().length > 0);
-};
+// ✅ Facility Validation
+const validateFacilityIds = (facilityIds: unknown): facilityIds is string[] =>
+  Array.isArray(facilityIds) && facilityIds.every(id => typeof id === 'string' && id.trim().length > 0);
 
-//
-// ✅ Middleware: Auth for user tokens
-//
-export const authenticateUser = (req: Request, res: Response, next: NextFunction): Response | void => {
+// ✅ User Middleware
+export const authenticateUser = (req: Request, res: Response, next: NextFunction): void | Response => {
   const token = extractToken(req);
   if (!token) return res.status(401).json({ error: 'Missing or malformed Authorization header' });
 
-  const decoded = verifyToken<UserAccessTokenPayload>(token);
-  if (!decoded || decoded.tokenType !== 'user') {
+  const decoded = verifyToken<AccessTokenPayload>(token);
+  if (!decoded || decoded.tokenType !== 'access' || decoded.role !== Role.USER) {
     return res.status(401).json({ error: 'Invalid or expired user token' });
   }
 
@@ -62,52 +49,73 @@ export const authenticateUser = (req: Request, res: Response, next: NextFunction
     return res.status(403).json({ error: 'Invalid or missing facility access for user' });
   }
 
-  req.user = decoded;
+  req.user = decoded as UserAccessTokenPayload;
   next();
 };
 
-//
-// ✅ Middleware: Auth for admin tokens
-//
-export const authenticateAdmin = (req: Request, res: Response, next: NextFunction): Response | void => {
+// ✅ Admin Middleware
+export const authenticateAdmin = (req: Request, res: Response, next: NextFunction): void | Response => {
   const token = extractToken(req);
   if (!token) return res.status(401).json({ error: 'Missing or malformed Authorization header' });
 
-  const decoded = verifyToken<AdminAccessTokenPayload>(token);
-  if (!decoded || decoded.tokenType !== 'admin') {
+  const decoded = verifyToken<AccessTokenPayload>(token);
+  if (!decoded || decoded.tokenType !== 'access' || decoded.role !== Role.ADMIN) {
     return res.status(401).json({ error: 'Invalid or expired admin token' });
   }
 
-  if (!validateFacilityIds(decoded.facilityIds)) {
-    return res.status(403).json({ error: 'Invalid or missing facility access for admin' });
-  }
-
-  req.admin = decoded;
+  req.admin = decoded as AdminAccessTokenPayload;
   next();
 };
 
-//
-// ✅ Middleware: Accepts either user or admin
-//
-export const authenticateAny = (req: Request, res: Response, next: NextFunction): Response | void => {
+// ✅ Manager Middleware
+export const authenticateManager = (req: Request, res: Response, next: NextFunction): void | Response => {
   const token = extractToken(req);
   if (!token) return res.status(401).json({ error: 'Missing or malformed Authorization header' });
 
-  const decoded = verifyToken<JwtPayload>(token);
-  if (!decoded || typeof decoded !== 'object' || !decoded.tokenType) {
-    return res.status(401).json({ error: 'Invalid or expired token' });
+  const decoded = verifyToken<AccessTokenPayload>(token);
+  if (!decoded || decoded.tokenType !== 'access' || decoded.role !== Role.MANAGER) {
+    return res.status(401).json({ error: 'Invalid or expired manager token' });
   }
 
   if (!validateFacilityIds(decoded.facilityIds)) {
-    return res.status(403).json({ error: 'Invalid or missing facility access' });
+    return res.status(403).json({ error: 'Invalid or missing facility access for manager' });
   }
 
-  if (decoded.tokenType === 'user') {
-    req.user = decoded as UserAccessTokenPayload;
-  } else if (decoded.tokenType === 'admin') {
-    req.admin = decoded as AdminAccessTokenPayload;
-  } else {
-    return res.status(401).json({ error: 'Unknown token type' });
+  req.manager = decoded as ManagerAccessTokenPayload;
+  next();
+};
+
+// ✅ Universal Middleware
+export const authenticateAny = (req: Request, res: Response, next: NextFunction): void | Response => {
+  const token = extractToken(req);
+  if (!token) return res.status(401).json({ error: 'Missing or malformed Authorization header' });
+
+  const decoded = verifyToken<AccessTokenPayload>(token);
+  if (!decoded || decoded.tokenType !== 'access') {
+    return res.status(401).json({ error: 'Invalid or expired token' });
+  }
+
+  switch (decoded.role) {
+    case Role.USER:
+      if (!validateFacilityIds(decoded.facilityIds)) {
+        return res.status(403).json({ error: 'Invalid or missing facility access for user' });
+      }
+      req.user = decoded as UserAccessTokenPayload;
+      break;
+
+    case Role.ADMIN:
+      req.admin = decoded as AdminAccessTokenPayload;
+      break;
+
+    case Role.MANAGER:
+      if (!validateFacilityIds(decoded.facilityIds)) {
+        return res.status(403).json({ error: 'Invalid or missing facility access for manager' });
+      }
+      req.manager = decoded as ManagerAccessTokenPayload;
+      break;
+
+    default:
+      return res.status(401).json({ error: 'Unknown role' });
   }
 
   next();

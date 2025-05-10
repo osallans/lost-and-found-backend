@@ -1,52 +1,96 @@
 import bcrypt from 'bcrypt';
 import { v4 as uuidv4 } from 'uuid';
-import { UserModel } from '../../models/user.model'; // Adjust for your ORM
 import { TokenService } from './token.service';
 import { IDPType } from '../../models/enums/idpType.enum';
-import { UserAccessTokenPayload } from '../interfaces/userAccessTokenPayload.interface';
-import { UserRefreshTokenPayload } from '../interfaces/userRefreshTokenPayload.interface';
+import { Role } from '../../models/enums/role.enum';
+import { AuthIdentity } from '../interfaces/authIdentity.interface';
+import { IdentityProvider } from '../interfaces/identityProvider.interface';
+import { RefreshTokenPayload } from '../interfaces/refreshTokenPayload.interface';
 
 const SALT_ROUNDS = 10;
 
 export class AuthService {
-  // Register user
-  async register(userData: { email: string; password: string; idpType?: IDPType }) {
-    const existing = await UserModel.findOne({ email: userData.email });
-    if (existing) {
-      throw new Error('User already exists');
+  constructor(
+    private readonly identityProviders: Record<Role, IdentityProvider>
+  ) {}
+
+  /**
+   * Register a new user (only supports Role.USER).
+   */
+  // async registerUser(userData: { email: string; password: string; idpType?: IDPType }) {
+  //   const provider = this.identityProviders[Role.USER];
+  //   if (!provider || !('register' in provider)) {
+  //     throw new Error('User registration not supported');
+  //   }
+
+  //   const identity = await provider.register(userData);
+  //   return this.generateAuthTokens(identity);
+  // }
+
+  /**
+   * Login for any supported role.
+   */
+  async loginBasic(email: string, password: string, role: Role) {
+    const provider = this.identityProviders[role];
+    if (!provider) {
+      throw new Error(`Unsupported role: ${role}`);
     }
 
-    const hashedPassword = await bcrypt.hash(userData.password, SALT_ROUNDS);
-    const user = new UserModel({
-      ...userData,
-      password: hashedPassword,
-      idpType: userData.idpType || IDPType.LOCAL,
-    });
+    const identity = await provider.findByEmail(email);
+    if (!identity) {
+      throw new Error('Invalid credentials');
+    }
 
-    await user.save();
+    const isValid = await provider.validatePassword(email, password);
+    if (!isValid) {
+      throw new Error('Invalid credentials');
+    }
 
-    return this.generateAuthTokens(user._id.toString(), user.email);
+    return this.generateAuthTokens(identity);
   }
 
-  // Login
-  async login(email: string, password: string) {
-    const user = await UserModel.findOne({ email });
-    if (!user) throw new Error('Invalid credentials');
-
-    const match = await bcrypt.compare(password, user.password);
-    if (!match) throw new Error('Invalid credentials');
-
-    return this.generateAuthTokens(user._id.toString(), user.email);
+  /**
+   * Centralized Token Generation (Access + Refresh).
+   */
+  private generateAuthTokens(identity: AuthIdentity) {
+    const accessToken = TokenService.generateAccessToken(identity);
+    const { token: refreshToken, sessionId } = TokenService.generateRefreshToken(identity);
+    return { accessToken, refreshToken, sessionId };
   }
 
-  // Generate both tokens
-  private generateAuthTokens(userId: string, email: string) {
-    const accessPayload: UserAccessTokenPayload = { userId, email };
-    const refreshPayload: UserRefreshTokenPayload = { userId, tokenId: uuidv4() };
+  async revokeSession(sessionId: string) {  
+    return null;
+  }
+  /**
+   * Refresh the access token using a valid refresh token.
+   */
+  async refreshAccessToken(refreshToken: string) {
+    let decoded: RefreshTokenPayload;
 
-    const accessToken = TokenService.generateAccessToken(accessPayload);
-    const refreshToken = TokenService.generateRefreshToken(refreshPayload);
+    try {
+      decoded = TokenService.verifyToken(refreshToken) as RefreshTokenPayload;
+    } catch (err) {
+      throw new Error('Invalid or expired refresh token');
+    }
 
-    return { accessToken, refreshToken };
+    const provider = this.identityProviders[decoded.role];
+    if (!provider) {
+      throw new Error(`Unsupported role: ${decoded.role}`);
+    }
+
+ // ✅ Re-validate user existence based on userId
+ const identity = await provider.findById(decoded.userId);
+ if (!identity || identity.id !== decoded.userId) {
+   throw new Error('Refresh token does not match any valid user');
+ }
+    if (!identity || identity.id !== decoded.userId) {
+      throw new Error('Refresh token does not match any valid user');
+    }
+
+    // Issue new access token
+    const accessToken = TokenService.generateAccessToken(identity);
+    return { accessToken };
   }
 }
+
+

@@ -1,5 +1,12 @@
 import { z } from 'zod';
 
+export function isValidEnumValue<T extends Record<string, string>>(
+    enumObj: T,
+    value: string
+  ): value is T[keyof T] {
+    return Object.values(enumObj).includes(value as T[keyof T]);
+}
+
 export const PaginationQuerySchema = z.object({
   page: z
     .string()

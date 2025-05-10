@@ -50,6 +50,7 @@ import countryRoutes from './country/routes/country.route';
 import healthRoutes from './health/routes/health.route';
 import { httpLogger } from './middlewares/httpLogger';
 import { swaggerDocument } from './docs/swagger';
+import authRoutes from './auth/routes/auth.routes';
 app.use(cookieParser());
 
 
@@ -60,7 +61,7 @@ app.use(healthRoutes);
 // Use the country routes
 app.use('/api', countryRoutes);  // Prefixing with '/api'
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
-
+app.use('/api', authRoutes);
 // Basic health check route
 app.get('/', (req: Request, res: Response) => {
   res.send('Lost and Found API is running 🚀');
