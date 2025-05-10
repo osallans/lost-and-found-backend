@@ -1,49 +1,83 @@
-// src/auth/strategies/facebook.strategy.ts
-
 import axios from 'axios';
 import { IDPVerifier } from './idpVerifier.interface';
 
 export class FacebookVerifier implements IDPVerifier {
-  async verifyToken(accessToken: string) {
-    const debugUrl = `https://graph.facebook.com/debug_token?input_token=${accessToken}&access_token=${process.env.FACEBOOK_APP_ID}|${process.env.FACEBOOK_APP_SECRET}`;
-    const debugResponse = await axios.get(debugUrl);
-    const data = debugResponse.data.data;
+  /**
+   * Generate Facebook OAuth2 Authorization URL for redirecting users.
+   * Accepts optional PKCE code_challenge if the client provides it.
+   */
+  async getAuthUrl(codeChallenge?: string): Promise<string> {
+    const baseUrl = 'https://www.facebook.com/v12.0/dialog/oauth';
+    const params = new URLSearchParams({
+      client_id: process.env.FACEBOOK_CLIENT_ID!,
+      redirect_uri: process.env.FACEBOOK_REDIRECT_URI!,
+      response_type: 'code',
+      scope: 'email public_profile',
+    });
 
-    if (!data.is_valid) {
-      throw new Error('Invalid Facebook token');
+    if (codeChallenge) {
+      params.append('code_challenge', codeChallenge);
+      params.append('code_challenge_method', 'S256');
     }
 
-    const profileUrl = `https://graph.facebook.com/me?fields=id,email,name&access_token=${accessToken}`;
-    const profileResponse = await axios.get(profileUrl);
+    return Promise.resolve(`${baseUrl}?${params.toString()}`);
+  }
 
-    const profile = profileResponse.data;
+  /**
+   * Handle the callback by extracting the authorization code and exchanging it for access token.
+   */
+  async verifyCallback(req: any) {
+    const code = req.query.code;
+    if (!code) {
+      throw new Error('Missing authorization code in callback');
+    }
+    return this.exchangeAuthorizationCode(code);
+  }
 
-    if (!profile.email) {
+  /**
+   * Verifies a Facebook access token by calling the Graph API for user information.
+   */
+  async verifyToken(accessToken: string) {
+    const userInfoUrl = `https://graph.facebook.com/me?fields=id,name,email&access_token=${accessToken}`;
+    const { data } = await axios.get(userInfoUrl);
+
+    if (!data.email) {
       throw new Error('Facebook token missing email');
     }
 
     return {
-      idpId: profile.id,
-      email: profile.email,
-      name: profile.name,
+      idpId: data.id,
+      email: data.email,
+      name: data.name,
     };
   }
 
-  async exchangeAuthorizationCode(code: string) {
-    const tokenUrl = `https://graph.facebook.com/v12.0/oauth/access_token`;
-    const params = new URLSearchParams();
-    params.append('client_id', process.env.FACEBOOK_APP_ID!);
-    params.append('client_secret', process.env.FACEBOOK_APP_SECRET!);
-    params.append('redirect_uri', process.env.FACEBOOK_REDIRECT_URI!);
-    params.append('code', code);
+  /**
+   * Exchanges the authorization code for an access token and verifies the token.
+   * Supports optional PKCE by accepting a codeVerifier.
+   */
+  async exchangeAuthorizationCode(code: string, codeVerifier?: string) {
+    const tokenUrl = 'https://graph.facebook.com/v12.0/oauth/access_token';
+    const params = new URLSearchParams({
+      client_id: process.env.FACEBOOK_CLIENT_ID!,
+      redirect_uri: process.env.FACEBOOK_REDIRECT_URI!,
+      code,
+    });
 
-    const response = await axios.get(tokenUrl + '?' + params.toString());
-
-    const { access_token } = response.data;
-    if (!access_token) {
-      throw new Error('Facebook exchange failed: No access token');
+    // Include client_secret only if no PKCE is used
+    if (!codeVerifier) {
+      params.append('client_secret', process.env.FACEBOOK_CLIENT_SECRET!);
+    } else {
+      params.append('code_verifier', codeVerifier);
     }
 
-    return this.verifyToken(access_token);
+    const { data } = await axios.get(`${tokenUrl}?${params.toString()}`);
+    const accessToken = data.access_token;
+
+    if (!accessToken) {
+      throw new Error('Facebook exchange failed: No access token returned');
+    }
+
+    return this.verifyToken(accessToken);
   }
 }

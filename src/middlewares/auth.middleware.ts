@@ -1,7 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt, { JwtPayload } from 'jsonwebtoken';
-import { UserAccessTokenPayload, AdminAccessTokenPayload, ManagerAccessTokenPayload, AccessTokenPayload } from '../auth/interfaces/tokenPayload.interface';
 import { Role } from '../models/enums/role.enum';
+import { AccessTokenPayload, AdminAccessTokenPayload, ManagerAccessTokenPayload, UserAccessTokenPayload } from '../auth/interfaces/accessTokenPayload.interface';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'supersecretkey';
 
