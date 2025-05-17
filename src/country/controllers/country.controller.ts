@@ -1,12 +1,13 @@
 import { Request, Response } from 'express';
 import { CreateCountrySchema, UpdateCountrySchema } from '../validators/country.validator';
 import { CountryDTO } from '../dtos/country.dto';
-import { ICountryController } from '../interfaces/ICountryController';
-import { ICountryService } from '../interfaces/ICountryService';
-import logger from '../../utils/logger';
 
-export class CountryController implements ICountryController {
-  constructor(private readonly countryService: ICountryService) {}
+import logger from '../../utils/logger';
+import { ICrudController } from '../../interfaces/crudController.interface';
+import { ICrudService } from '../../interfaces/crudService.interface';
+
+export class CountryController implements ICrudController {
+  constructor(private readonly countryService: ICrudService<CountryDTO>) {}
 
   create = async (req: Request, res: Response): Promise<Response> => {
     const parsed = CreateCountrySchema.safeParse(req.body);
@@ -44,13 +45,13 @@ export class CountryController implements ICountryController {
     }
   };
 
-  getByCode = async (req: Request, res: Response): Promise<Response> => {
+  getById = async (req: Request, res: Response): Promise<Response> => {
     try {
-      const country = await this.countryService.getByCode(req.params.code);
+      const country = await this.countryService.getById(req.params.id);
       if (!country) return res.status(404).json({ message: 'Country not found' });
       return res.status(200).json(country);
     } catch (error) {
-      logger.error('[CountryController][getByCode]', error);
+      logger.error('[CountryController][getById]', error);
       return res.status(500).json({ message: 'Error fetching country' });
     }
   };
@@ -62,7 +63,7 @@ export class CountryController implements ICountryController {
     }
 
     try {
-      const updated = await this.countryService.update(req.params.code, parsed.data);
+      const updated = await this.countryService.update(req.params.id, parsed.data as Partial<CountryDTO>);
       if (!updated) return res.status(404).json({ message: 'Country not found' });
       return res.status(200).json(updated);
     } catch (error) {
@@ -73,7 +74,7 @@ export class CountryController implements ICountryController {
 
   delete = async (req: Request, res: Response): Promise<Response> => {
     try {
-      const deleted = await this.countryService.delete(req.params.code);
+      const deleted = await this.countryService.delete(req.params.id);
       if (!deleted) return res.status(404).json({ message: 'Country not found' });
       return res.status(204).send();
     } catch (error) {
